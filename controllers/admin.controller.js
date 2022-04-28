@@ -129,8 +129,15 @@ module.exports = {
 
   //..............................User Page..............................
   getAllUsers: (req, res) => {
-    console.log("chal ja bhai plz......");
-    return;
+
+    return res.json({
+      error: false,
+      success: true,
+      message: "Ki Halll chal ae",
+    });
+
+
+
     getAllUsers((error, results) => {
       if (error) {
         console.log(error);
