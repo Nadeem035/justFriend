@@ -41,8 +41,6 @@ const { resolveHostname } = require("nodemailer/lib/shared");
 
 module.exports = {
   signup: (req, res) => {
-    console.log("OK");
-    return;
     const body = req.body;
     const salt = genSaltSync(10);
     body.password = hashSync(body.password, salt);
