@@ -41,6 +41,8 @@ const { resolveHostname } = require("nodemailer/lib/shared");
 
 module.exports = {
   signup: (req, res) => {
+    console.log("OK");
+    return;
     const body = req.body;
     const salt = genSaltSync(10);
     body.password = hashSync(body.password, salt);
@@ -95,11 +97,9 @@ module.exports = {
               expiresIn: "10m",
             }
           );
-          console.log("OK");
-          return;
-          // const link = `http://${req.headers.host}/api/user/verify/${jsontoken}`;
-          // const msg = `Please Follow the Link to Verify Your Email <a class="btn btn-success" href="${link}">Click Here</a> `;
-          // sendMail(body.email, "Email Verification", msg);
+          const link = `http://${req.headers.host}/api/user/verify/${jsontoken}`;
+          const msg = `Please Follow the Link to Verify Your Email <a class="btn btn-success" href="${link}">Click Here</a> `;
+          sendMail(body.email, "Email Verification", msg);
           return res.status(200).json({
             error: false,
             success: true,
