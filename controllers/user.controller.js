@@ -95,9 +95,11 @@ module.exports = {
               expiresIn: "10m",
             }
           );
-          const link = `http://${req.headers.host}/api/user/verify/${jsontoken}`;
-          const msg = `Please Follow the Link to Verify Your Email <a class="btn btn-success" href="${link}">Click Here</a> `;
-          sendMail(body.email, "Email Verification", msg);
+          console.log("OK");
+          return;
+          // const link = `http://${req.headers.host}/api/user/verify/${jsontoken}`;
+          // const msg = `Please Follow the Link to Verify Your Email <a class="btn btn-success" href="${link}">Click Here</a> `;
+          // sendMail(body.email, "Email Verification", msg);
           return res.status(200).json({
             error: false,
             success: true,
