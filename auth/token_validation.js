@@ -3,6 +3,8 @@ const { getUser } = require("../services/user.service.js");
 module.exports = {
   checkToken: (req, res, next) => {
     let token = req.get("authorization");
+    // remove word from string
+    token = token.replace("Bearer ", "");
     if (token) {
       jwt.verify(token, process.env.JWT_KEY, (err, decoded) => {
         if (err) {
