@@ -19,6 +19,7 @@ app.use(cors());
 var bodyParser = require("body-parser");
 app.use(bodyParser.json());
 
+
 app.use("/uploads", express.static("uploads"));
 app.use("/uploads/category", express.static("uploads/category"));
 app.use("/uploads/products", express.static("uploads/products"));
