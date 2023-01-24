@@ -19,6 +19,7 @@ const {
   getFeatured,
   markProductSold,
   mySoldProducts,
+  getReportedUserId,
 } = require("../controllers/product.controller");
 const path = require("path");
 const multer = require("multer");
@@ -68,5 +69,9 @@ router.put("/addfeatured", checkToken, addFeatured);
 router.post("/getfeatured", checkToken, getFeatured);
 router.put("/marksold/:product_id", checkToken, markProductSold);
 router.get("/myproducts/sold", checkToken, mySoldProducts);
+
+
+router.post("/testing", checkToken, getReportedUserId);
+
 
 module.exports = router;

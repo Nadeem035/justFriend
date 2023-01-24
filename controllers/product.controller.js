@@ -25,10 +25,10 @@ const {
   getProductReviews,
   getMyReviewOnProduct,
   getProductRating,
+  getReportedUserId,
 } = require("../services/product.service.js");
 var cron = require("node-cron");
 const { pushNotification } = require("../controllers/push.controller");
-
 module.exports = {
   createProduct: (req, res) => {
     const user = req.decoded.result;
@@ -561,4 +561,34 @@ module.exports = {
       });
     });
   },
+
+
+
+
+
+
+
+  getReportedUserId: (req, res) => {
+    const user = req.decoded.result;
+    getReportedUserId(user.id, (error, results) => {
+      if (error) {
+        console.log(error);
+        return;
+      }
+      if (results.length == 0) {
+        return res.json({
+          error: false,
+          success: true,
+          message: "No Reported User ",
+          data: results,
+        });
+      }
+      return res.json({
+        error: false,
+        success: true,
+        message: "Get Reported User",
+        data: results,
+      });
+    });
+  }
 };

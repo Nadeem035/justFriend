@@ -1,5 +1,24 @@
 const pool = require("../config/database");
 var moment = require("moment");
+function getReportedUserProducts(user_id) {
+  return new Promise((res, rej) => {
+    pool.query(
+      `SELECT GROUP_CONCAT(tbl_products.id) as productIds FROM tbl_products
+          INNER JOIN tbl_report
+          ON tbl_products.user_id=tbl_report.reported_user_id
+          WHERE tbl_report.user_id=?`,
+      [user_id],
+      (error, results, fields) => {
+        //
+        if (error) {
+          return rej(error);
+        }
+        //
+        res(results);
+      }
+    );
+  });
+}
 
 module.exports = {
   // ...........................Product Services..........................................
@@ -31,12 +50,18 @@ module.exports = {
     );
   },
 
-  getProducts: (user_id, callBack) => {
+  getProducts: async (user_id, callBack) => {
+    const response = await getReportedUserProducts(user_id);
+    var where = ''; 
+    if (response[0].productIds) {
+      where = `&& tbl_products.id NOT IN(${response[0].productIds})`;
+    } 
     var q = ` SELECT tbl_products.*,IFNULL(tbl_favourite.isFavourite,0)as isFav FROM tbl_products
             LEFT JOIN tbl_favourite
             ON tbl_products.id=tbl_favourite.product_id
             && tbl_favourite.user_id=?
             where isSold="0" && isDeleted=0
+            ${where}
             order by tbl_products.id DESC`;
     pool.query(q, [user_id], (error, results, fields) => {
       if (error) {
@@ -46,13 +71,19 @@ module.exports = {
     });
   },
 
-  getProductsByCatId: (user_id, cat_id, callBack) => {
-    // var q = `SELECT * FROM tbl_products where isSold="0" && category_id=?`;
+  getProductsByCatId: async (user_id, cat_id, callBack) => {
+    const response = await getReportedUserProducts(user_id);
+    var where = ''; 
+    if (response[0].productIds) {
+      where = `&& tbl_products.id NOT IN(${response[0].productIds})`;
+    } 
+    
     var q = ` SELECT tbl_products.*,IFNULL(tbl_favourite.isFavourite,0)as isFav FROM tbl_products
             LEFT JOIN tbl_favourite
             ON tbl_products.id=tbl_favourite.product_id
             && tbl_favourite.user_id=?
             where isSold="0" && category_id=?
+            ${where}
             order by tbl_products.id DESC`;
     pool.query(q, [user_id, cat_id], (error, results, fields) => {
       if (error) {
@@ -61,12 +92,20 @@ module.exports = {
       return callBack(null, results);
     });
   },
-  getFavProducts: (user_id, callBack) => {
+
+  getFavProducts: async (user_id, callBack) => {
+    const response = await getReportedUserProducts(user_id);
+    var where = ''; 
+    if (response[0].productIds) {
+      where = `&& tbl_products.id NOT IN(${response[0].productIds})`;
+    }
     pool.query(
       `SELECT * FROM tbl_products 
       LEFT JOIN tbl_favourite 
       ON tbl_products.id=tbl_favourite.product_id 
-      WHERE tbl_favourite.user_id=?`,
+      WHERE tbl_favourite.user_id=? 
+      ${where}
+      `,
       [user_id],
       (error, results, fields) => {
         if (error) {
@@ -77,12 +116,18 @@ module.exports = {
     );
   },
 
-  getSearchProducts: (id, body, callBack) => {
+  getSearchProducts: async (id, body, callBack) => {
+    const response = await getReportedUserProducts(user_id);
+    var where = ''; 
+    if (response[0].productIds) {
+      where = `&& tbl_products.id NOT IN(${response[0].productIds})`;
+    }
     var q = ` SELECT tbl_products.*,IFNULL(tbl_favourite.isFavourite,0)as isFav FROM tbl_products
             LEFT JOIN tbl_favourite
             ON tbl_products.id=tbl_favourite.product_id
             && tbl_favourite.user_id=${id}
             where isSold="0" && name Like '%${body.keyword}%'
+            ${where}
             order by tbl_products.id`;
     pool.query(q, [], (error, results, fields) => {
       if (error) {
@@ -103,9 +148,14 @@ module.exports = {
       }
     );
   },
-  getSearchArray: (user_id, callBack) => {
+  getSearchArray: async (user_id, callBack) => {
+    const response = await getReportedUserProducts(user_id);
+    var where = ''; 
+    if (response[0].productIds) {
+      where = `&& tbl_products.id NOT IN(${response[0].productIds})`;
+    }
     pool.query(
-      `SELECT * FROM tbl_search WHERE user_id=${user_id} order by createdDtm desc limit 5`,
+      `SELECT * FROM tbl_search WHERE user_id=${user_id} ${where} order by createdDtm desc limit 5`,
       [],
       (error, results, fields) => {
         if (error) {
@@ -115,8 +165,12 @@ module.exports = {
       }
     );
   },
-  getRecentProducts: (id, body, callBack) => {
-    console.log(body);
+  getRecentProducts: async (id, body, callBack) => {
+    const response = await getReportedUserProducts(user_id);
+    var where = ''; 
+    if (response[0].productIds) {
+      where = `&& tbl_products.id NOT IN(${response[0].productIds})`;
+    }
     if (body.length != 0) {
       let keywords = "";
       for (let i = 0; i < body.length; i++) {
@@ -134,6 +188,7 @@ module.exports = {
             where isSold="0" AND  ${keywords} name Like '%${
         body[0].search_keyword
       }%'
+            ${where}
             order by isFeatured DESC,id DESC  limit 10`;
       pool.query(q, [], (error, results, fields) => {
         if (error) {
@@ -146,7 +201,12 @@ module.exports = {
     }
   },
 
-  getProductById: (user_id, product_id, callBack) => {
+  getProductById: async (user_id, product_id, callBack) => {
+    const response = await getReportedUserProducts(user_id);
+    var where = ''; 
+    if (response[0].productIds) {
+      where = `&& tbl_products.id NOT IN(${response[0].productIds})`;
+    }
     var q = `SELECT tbl_products.*,IFNULL(tbl_favourite.isFavourite,0)as isFav ,
               tbl_users.name as user_name,tbl_users.userImg,tbl_users.mobile,
               tbl_category.name as category_name
@@ -154,7 +214,9 @@ module.exports = {
               ON tbl_products.id=tbl_favourite.product_id && tbl_favourite.user_id=${user_id} 
               JOIN tbl_users ON tbl_products.user_id=tbl_users.id
               JOIN tbl_category ON tbl_products.category_id=tbl_category.id
-              WHERE tbl_products.isSold="0" && tbl_products.id= ${product_id}`;
+              WHERE tbl_products.isSold="0" 
+              ${where}
+               && tbl_products.id= ${product_id}`;
     pool.query(q, [], (error, results, fields) => {
       if (error) {
         return callBack(error);
@@ -177,8 +239,12 @@ module.exports = {
     );
   },
 
-  getSortProducts: (user_id, body, callBack) => {
-    console.log(body);
+  getSortProducts: async (user_id, body, callBack) => {
+    const response = await getReportedUserProducts(user_id);
+    var where = ''; 
+    if (response[0].productIds) {
+      where = `&& tbl_products.id NOT IN(${response[0].productIds})`;
+    }
     var con = "id";
 
     if (body.sort_type == "Newest") {
@@ -186,21 +252,21 @@ module.exports = {
       var q = `SELECT tbl_products.*,IFNULL(tbl_favourite.isFavourite,0)as isFav 
               FROM tbl_products LEFT JOIN tbl_favourite 
               ON tbl_products.id=tbl_favourite.product_id && tbl_favourite.user_id=${user_id} 
-              WHERE tbl_products.isSold="0" && category_id=${body.category_id} ORDER BY ${con}`;
+              WHERE tbl_products.isSold="0" && category_id=${body.category_id} ${where} ORDER BY ${con}`;
     }
     if (body.sort_type == "Price:Low to high") {
       con = "price ASC";
       var q = `SELECT tbl_products.*,IFNULL(tbl_favourite.isFavourite,0)as isFav 
               FROM tbl_products LEFT JOIN tbl_favourite 
               ON tbl_products.id=tbl_favourite.product_id && tbl_favourite.user_id=${user_id} 
-              WHERE tbl_products.isSold="0" && category_id=${body.category_id} ORDER BY ${con}`;
+              WHERE tbl_products.isSold="0" && category_id=${body.category_id} ${where} ORDER BY ${con}`;
     }
     if (body.sort_type == "Price:High to low") {
       con = "price DESC";
       var q = `SELECT tbl_products.*,IFNULL(tbl_favourite.isFavourite,0)as isFav 
               FROM tbl_products LEFT JOIN tbl_favourite 
               ON tbl_products.id=tbl_favourite.product_id && tbl_favourite.user_id=${user_id} 
-              WHERE tbl_products.isSold="0" && category_id=${body.category_id} ORDER BY ${con}`;
+              WHERE tbl_products.isSold="0" && category_id=${body.category_id} ${where} ORDER BY ${con}`;
     }
     if (body.sort_type == "Closest") {
       const cat_id = body.category_id;
@@ -213,7 +279,7 @@ module.exports = {
                 AS distance
               FROM tbl_products LEFT JOIN tbl_favourite 
               ON tbl_products.id=tbl_favourite.product_id && tbl_favourite.user_id=${user_id} 
-              WHERE tbl_products.isSold="0" && tbl_products.category_id=${cat_id} 
+              WHERE tbl_products.isSold="0" ${where} && tbl_products.category_id=${cat_id} 
               HAVING distance < 500   
               ORDER BY distance`;
     }
@@ -225,7 +291,12 @@ module.exports = {
     });
   },
 
-  getFilterProducts: (user_id, body, callBack) => {
+  getFilterProducts: async (user_id, body, callBack) => {
+    const response = await getReportedUserProducts(user_id);
+    var where = ''; 
+    if (response[0].productIds) {
+      where = `&& tbl_products.id NOT IN(${response[0].productIds})`;
+    }
     var filter = ` && tbl_products.category_id=${body.category_id}`;
     var distance = 300000;
     var lat = body.latitude;
@@ -267,7 +338,7 @@ module.exports = {
                 AS distance
               FROM tbl_products LEFT JOIN tbl_favourite 
               ON tbl_products.id=tbl_favourite.product_id && tbl_favourite.user_id=${user_id} 
-              WHERE tbl_products.isSold="0" ${filter} 
+              WHERE tbl_products.isSold="0" ${filter} ${where}
               HAVING distance < ${distance}   
               ORDER BY ${con}`,
       [],
@@ -306,13 +377,19 @@ module.exports = {
     );
   },
 
-  getMyPostProduct: (user_id, callBack) => {
+  getMyPostProduct: async (user_id, callBack) => {
+    const response = await getReportedUserProducts(user_id);
+    var where = ''; 
+    if (response[0].productIds) {
+      where = `&& tbl_products.id NOT IN(${response[0].productIds})`;
+    }
     pool.query(
       `SELECT tbl_products.*,IFNULL(tbl_favourite.isFavourite,0)as isFav FROM tbl_products
             LEFT JOIN tbl_favourite
             ON tbl_products.id=tbl_favourite.product_id
             && tbl_favourite.user_id=${user_id}
-            where tbl_products.isDeleted="0" &&tbl_products.isSold="0" && tbl_products.user_id=?
+            where tbl_products.isDeleted="0" && tbl_products.isSold="0" && tbl_products.user_id=?
+            ${where}
             order by tbl_products.id`,
       [user_id],
       (error, results, fields) => {
@@ -323,13 +400,19 @@ module.exports = {
       }
     );
   },
-  getMySoldProduct: (user_id, callBack) => {
+  getMySoldProduct: async (user_id, callBack) => {
+    const response = await getReportedUserProducts(user_id);
+    var where = ''; 
+    if (response[0].productIds) {
+      where = `&& tbl_products.id NOT IN(${response[0].productIds})`;
+    }
     pool.query(
       `SELECT tbl_products.*,IFNULL(tbl_favourite.isFavourite,0)as isFav FROM tbl_products
             LEFT JOIN tbl_favourite
             ON tbl_products.id=tbl_favourite.product_id
             && tbl_favourite.user_id=${user_id}
             where tbl_products.isSold="1"&& tbl_products.isDeleted="0" && tbl_products.user_id=?
+            ${where}
             order by tbl_products.id`,
       [user_id],
       (error, results, fields) => {
@@ -340,13 +423,19 @@ module.exports = {
       }
     );
   },
-  getUserPostProduct: (user_id, my_id, callBack) => {
+  getUserPostProduct: async (user_id, my_id, callBack) => {
+    const response = await getReportedUserProducts(user_id);
+    var where = ''; 
+    if (response[0].productIds) {
+      where = `&& tbl_products.id NOT IN(${response[0].productIds})`;
+    }
     pool.query(
       `SELECT tbl_products.*,IFNULL(tbl_favourite.isFavourite,0)as isFav FROM tbl_products
             LEFT JOIN tbl_favourite
             ON tbl_products.id=tbl_favourite.product_id
             && tbl_favourite.user_id=${my_id}
             where tbl_products.isSold="0" && tbl_products.user_id=?
+            ${where}
             order by tbl_products.id`,
       [user_id],
       (error, results, fields) => {
@@ -418,7 +507,12 @@ module.exports = {
     );
   },
 
-  getFeatured: (user_id, body, callBack) => {
+  getFeatured: async (user_id, body, callBack) => {
+    const response = await getReportedUserProducts(user_id);
+    var where = ''; 
+    if (response[0].productIds) {
+      where = `&& tbl_products.id NOT IN(${response[0].productIds})`;
+    }
     let filter = "&& isFeatured!=0";
     var distance = 20000;
     var lat = body.latitude;
@@ -431,6 +525,7 @@ module.exports = {
               FROM tbl_products LEFT JOIN tbl_favourite 
               ON tbl_products.id=tbl_favourite.product_id && tbl_favourite.user_id=${user_id} 
               WHERE tbl_products.isSold="0" ${filter} 
+              ${where}
               && featuredUpto >= '${moment(Date.now()).format(
                 "YYYY-MM-DD HH:mm:ss"
               )}'
@@ -469,11 +564,16 @@ module.exports = {
       }
     );
   },
-  getMyReviewOnProduct: (user_id, product_id, callBack) => {
+  getMyReviewOnProduct: async (user_id, product_id, callBack) => {
+    const response = await getReportedUserProducts(user_id);
+    var where = ''; 
+    if (response[0].productIds) {
+      where = `&& tbl_products.id NOT IN(${response[0].productIds})`;
+    }
     pool.query(
       `SELECT tbl_product_reviews.*,tbl_users.userImg as user_img,tbl_users.name as user_name
       FROM tbl_product_reviews left join tbl_users on tbl_product_reviews.user_id=tbl_users.id
-      WHERE tbl_product_reviews.product_id=? && tbl_product_reviews.user_id=?  order by id desc limit 2`,
+      WHERE tbl_product_reviews.product_id=? && tbl_product_reviews.user_id=? ${where} order by id desc limit 2`,
       [product_id, user_id],
       (error, results, fields) => {
         if (error) {
@@ -483,11 +583,16 @@ module.exports = {
       }
     );
   },
-  getProductReviews: (product_id, callBack) => {
+  getProductReviews: async (product_id, callBack) => {
+    const response = await getReportedUserProducts(user_id);
+    var where = ''; 
+    if (response[0].productIds) {
+      where = `&& tbl_products.id NOT IN(${response[0].productIds})`;
+    }
     pool.query(
       `SELECT tbl_product_reviews.*,tbl_users.userImg as user_img,tbl_users.name as user_name
       FROM tbl_product_reviews left join tbl_users on tbl_product_reviews.user_id=tbl_users.id
-      WHERE tbl_product_reviews.product_id=? order by id desc limit 2`,
+      WHERE tbl_product_reviews.product_id=? ${where} order by id desc limit 2`,
       [product_id],
       (error, results, fields) => {
         if (error) {
@@ -497,9 +602,14 @@ module.exports = {
       }
     );
   },
-  getProductRating: (product_id, callBack) => {
+  getProductRating: async (product_id, callBack) => {
+    const response = await getReportedUserProducts(user_id);
+    var where = ''; 
+    if (response[0].productIds) {
+      where = `&& tbl_products.id NOT IN(${response[0].productIds})`;
+    }
     pool.query(
-      `SELECT AVG(rating)as rating FROM tbl_product_reviews WHERE product_id=?`,
+      `SELECT AVG(rating)as rating FROM tbl_product_reviews WHERE product_id=? ${where}`,
       [product_id],
       (error, results, fields) => {
         if (error) {
